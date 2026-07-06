@@ -2,16 +2,27 @@ import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
 import type { RequestHandler } from './$types';
 
-export const fallback: RequestHandler = async ({ request, params, url }) => {
-	const authPath = params.auth;
-	// The remote auth server has better-auth mounted at the root level (/),
-	// so we strip the local '/api/auth' prefix when forwarding the request.
+/**
+ * Removes the `Domain` attribute from a Set-Cookie string so the cookie becomes host-only
+ * for whatever domain this proxy is served from. The upstream auth server scopes cookies to
+ * `Domain=erza.ai`, which the browser rejects when the app runs on a different host
+ * (e.g. localhost). Cookie name and all other attributes (Secure, SameSite, HttpOnly) are
+ * left untouched so the auth server still recognises the cookie on subsequent requests.
+ */
+function stripCookieDomain(cookie: string): string {
+	return cookie.replace(/;\s*Domain=[^;]*/i, '');
+}
+
+export const fallback: RequestHandler = async ({ request, url }) => {
+	// The remote better-auth server mounts at its default basePath (/api/auth), which
+	// matches this proxy's own mount, so we forward the full incoming path unchanged.
 	const authServerUrl = env.PUBLIC_AUTH_SERVER_URL ?? 'https://auth.dev.erza.ai';
-	const targetUrl = new URL(`/${authPath}${url.search}`, authServerUrl);
+	const targetUrl = new URL(`${url.pathname}${url.search}`, authServerUrl);
 
 	const headers = new Headers();
-	// Forward crucial headers
-	const headersToForward = ['cookie', 'content-type', 'authorization', 'accept'];
+	// Forward crucial headers. 'origin' is required: better-auth validates it for CSRF
+	// protection on state-changing requests (sign-in/sign-up) against its trustedOrigins.
+	const headersToForward = ['cookie', 'content-type', 'authorization', 'accept', 'origin'];
 	for (const headerName of headersToForward) {
 		const value = request.headers.get(headerName);
 		if (value) {
@@ -33,13 +44,22 @@ export const fallback: RequestHandler = async ({ request, params, url }) => {
 			redirect: 'manual'
 		});
 
-		// Copy headers from response
+		// Copy response headers. Set-Cookie needs special handling for two reasons:
+		//  1. The Fetch API folds multiple Set-Cookie headers into a single comma-joined
+		//     value via forEach/get, which corrupts them. getSetCookie() returns each
+		//     Set-Cookie as its own string so they survive intact.
+		//  2. The auth server scopes its cookies to Domain=erza.ai. That won't match the
+		//     app's own host (e.g. localhost), so the browser drops them. We strip the
+		//     Domain attribute to make each cookie host-only for the app domain; the
+		//     browser then resends it and we forward it back upstream on get-session.
 		const responseHeaders = new Headers();
 		response.headers.forEach((value, key) => {
-			// Forward set-cookie headers so that cookies set by the auth server
-			// are set on the SvelteKit app domain
+			if (key.toLowerCase() === 'set-cookie') return; // handled below
 			responseHeaders.append(key, value);
 		});
+		for (const cookie of response.headers.getSetCookie()) {
+			responseHeaders.append('set-cookie', stripCookieDomain(cookie));
+		}
 
 		return new Response(response.body, {
 			status: response.status,

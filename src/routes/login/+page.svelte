@@ -1,8 +1,34 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth-client';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
 
 	let isLoading = $state(false);
+	let isEmailLoading = $state(false);
+	let email = $state('');
+	let password = $state('');
 	let errorMessage = $state('');
+
+	async function loginWithEmail(event: SubmitEvent) {
+		event.preventDefault();
+		try {
+			isEmailLoading = true;
+			errorMessage = '';
+			const { error } = await authClient.signIn.email({ email, password });
+			if (error) {
+				errorMessage = error.message ?? 'Invalid email or password.';
+				return;
+			}
+			await goto(resolve('/'));
+		} catch (error) {
+			errorMessage =
+				error instanceof Error ? error.message : 'An unexpected error occurred during sign-in.';
+		} finally {
+			isEmailLoading = false;
+		}
+	}
 
 	async function loginWithGoogle() {
 		try {
@@ -41,6 +67,61 @@
 				{errorMessage}
 			</div>
 		{/if}
+
+		<!-- Email / Password Sign-in -->
+		<form onsubmit={loginWithEmail} class="space-y-4">
+			<div class="space-y-2">
+				<Label for="email">Email</Label>
+				<Input
+					id="email"
+					type="email"
+					bind:value={email}
+					placeholder="you@example.com"
+					autocomplete="email"
+					required
+					disabled={isEmailLoading}
+				/>
+			</div>
+			<div class="space-y-2">
+				<Label for="password">Password</Label>
+				<Input
+					id="password"
+					type="password"
+					bind:value={password}
+					placeholder="••••••••"
+					autocomplete="current-password"
+					required
+					disabled={isEmailLoading}
+				/>
+			</div>
+			<button
+				type="submit"
+				disabled={isEmailLoading}
+				class="w-full flex items-center justify-center gap-3 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
+			>
+				{#if isEmailLoading}
+					<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+					Signing in...
+				{:else}
+					Sign in
+				{/if}
+			</button>
+		</form>
+
+		<!-- Divider -->
+		<div class="flex items-center gap-3">
+			<div class="h-px flex-1 bg-border"></div>
+			<span class="text-xs text-muted-foreground uppercase tracking-wider">or</span>
+			<div class="h-px flex-1 bg-border"></div>
+		</div>
 
 		<!-- OAuth Providers Button -->
 		<div class="flex items-center justify-center gap-4">

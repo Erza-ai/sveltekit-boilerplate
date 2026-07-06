@@ -6,9 +6,11 @@
 #
 # Set the following in the Dokploy compose environment (Settings -> Environment):
 #   IMAGE_NAME             ghcr.io/<owner>/<repo>   (lowercase; e.g. ghcr.io/savioruz/sveltekit-boilerplate)
-#   PUBLIC_APP_URL         https://your-app-domain.example
-#   PUBLIC_AUTH_SERVER_URL https://auth.dev.erza.ai
-#   PORT                   (optional) port the app listens on; defaults to 3000
+#   PUBLIC_APP_URL          https://your-app-domain.example
+#   PUBLIC_AUTH_SERVER_URL  https://auth.dev.erza.ai
+#   PUBLIC_CORE_API_BASE_URL https://core-api.your-domain.example
+#   PUBLIC_PRODUCT          product scope for the token exchange (e.g. local)
+#   PORT                    (optional) port the app listens on; defaults to 3000
 # IMAGE_TAG and GIT_SHA are managed automatically by the CD pipeline (default to "latest").
 
 services:
@@ -22,6 +24,8 @@ services:
       ORIGIN: ${PUBLIC_APP_URL}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL}
       PUBLIC_AUTH_SERVER_URL: ${PUBLIC_AUTH_SERVER_URL}
+      PUBLIC_CORE_API_BASE_URL: ${PUBLIC_CORE_API_BASE_URL}
+      PUBLIC_PRODUCT: ${PUBLIC_PRODUCT:-local}
       GIT_SHA: ${GIT_SHA:-}
     ports:
       - '${PORT:-3000}:${PORT:-3000}'
