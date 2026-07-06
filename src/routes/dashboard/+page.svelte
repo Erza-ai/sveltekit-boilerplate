@@ -100,6 +100,75 @@
 			</button>
 		</div>
 
+		<!-- Session info -->
+		{#if $session.data}
+			<Card.Root
+				class="border-border bg-card/50 overflow-hidden rounded-2xl shadow-xl backdrop-blur-xl"
+			>
+				<Card.Header class="border-b border-border bg-background/20">
+					<div class="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+						<div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+							{#if $session.data.user.image}
+								<img
+									src={$session.data.user.image}
+									alt={$session.data.user.name}
+									class="h-14 w-14 rounded-full border-2 border-primary object-cover shadow-md"
+								/>
+							{:else}
+								<div
+									class="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-primary text-xl font-bold uppercase text-primary-foreground shadow-md"
+								>
+									{($session.data.user.name || 'U')[0]}
+								</div>
+							{/if}
+							<div>
+								<Card.Title class="text-xl font-bold text-foreground">
+									{$session.data.user.name}
+								</Card.Title>
+								<Card.Description class="text-sm text-muted-foreground">
+									{$session.data.user.email}
+								</Card.Description>
+							</div>
+						</div>
+						<span
+							class="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+						>
+							<span class="h-1.5 w-1.5 animate-pulse rounded-full bg-primary"></span>
+							Active Session
+						</span>
+					</div>
+				</Card.Header>
+
+				<Card.Content class="py-6">
+					<h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+						Session Metadata
+					</h3>
+					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<div class="rounded-xl border border-border bg-background/60 p-4">
+							<p class="mb-1 text-xs text-muted-foreground">User ID</p>
+							<p class="truncate font-mono text-sm text-foreground">{$session.data.user.id}</p>
+						</div>
+						<div class="rounded-xl border border-border bg-background/60 p-4">
+							<p class="mb-1 text-xs text-muted-foreground">Session ID</p>
+							<p class="truncate font-mono text-sm text-foreground">{$session.data.session.id}</p>
+						</div>
+						<div class="rounded-xl border border-border bg-background/60 p-4">
+							<p class="mb-1 text-xs text-muted-foreground">Session Created</p>
+							<p class="text-sm text-foreground">
+								{new Date($session.data.session.createdAt).toLocaleString()}
+							</p>
+						</div>
+						<div class="rounded-xl border border-border bg-background/60 p-4">
+							<p class="mb-1 text-xs text-muted-foreground">Session Expires</p>
+							<p class="text-sm font-medium text-foreground">
+								{new Date($session.data.session.expiresAt).toLocaleString()}
+							</p>
+						</div>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		{/if}
+
 		<Card.Root
 			class="border-border bg-card/50 overflow-hidden rounded-2xl shadow-xl backdrop-blur-xl"
 		>
