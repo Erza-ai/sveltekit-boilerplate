@@ -12,8 +12,11 @@
 				provider: 'google',
 				callbackURL: '/'
 			});
-		} catch (error: any) {
-			errorMessage = error.message || 'An unexpected error occurred during Google Sign-in.';
+		} catch (error) {
+			errorMessage =
+				error instanceof Error
+					? error.message
+					: 'An unexpected error occurred during Google Sign-in.';
 			isLoading = false;
 		}
 	}

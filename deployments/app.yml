@@ -1,0 +1,37 @@
+# Dokploy Compose deployment for the SvelteKit boilerplate.
+#
+# The CD workflows (.github/workflows/cd-dev.yaml / cd-staging.yaml) build & push the image
+# to GHCR, then call the Dokploy API to inject IMAGE_TAG (e.g. dev-<sha> / staging-<sha>) and
+# GIT_SHA into this compose's environment and redeploy it.
+#
+# Set the following in the Dokploy compose environment (Settings -> Environment):
+#   IMAGE_NAME             ghcr.io/<owner>/<repo>   (lowercase; e.g. ghcr.io/savioruz/sveltekit-boilerplate)
+#   PUBLIC_APP_URL         https://your-app-domain.example
+#   PUBLIC_AUTH_SERVER_URL https://auth.dev.erza.ai
+#   PORT                   (optional) port the app listens on; defaults to 3000
+# IMAGE_TAG and GIT_SHA are managed automatically by the CD pipeline (default to "latest").
+
+services:
+  app:
+    image: ${IMAGE_NAME:-ghcr.io/OWNER/REPO}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3000}
+      # adapter-node needs ORIGIN in production for CSRF / form actions
+      ORIGIN: ${PUBLIC_APP_URL}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL}
+      PUBLIC_AUTH_SERVER_URL: ${PUBLIC_AUTH_SERVER_URL}
+      GIT_SHA: ${GIT_SHA:-}
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'bun --eval "fetch(''http://localhost:''+(process.env.PORT||3000)+''/'').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"'
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

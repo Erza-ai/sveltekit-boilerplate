@@ -1,11 +1,13 @@
 import { error } from '@sveltejs/kit';
+import { env } from '$env/dynamic/public';
 import type { RequestHandler } from './$types';
 
 export const fallback: RequestHandler = async ({ request, params, url }) => {
 	const authPath = params.auth;
-	// The auth server at auth.dev.erza.ai has better-auth mounted at the root level (/),
+	// The remote auth server has better-auth mounted at the root level (/),
 	// so we strip the local '/api/auth' prefix when forwarding the request.
-	const targetUrl = new URL(`/${authPath}${url.search}`, 'https://auth.dev.erza.ai');
+	const authServerUrl = env.PUBLIC_AUTH_SERVER_URL ?? 'https://auth.dev.erza.ai';
+	const targetUrl = new URL(`/${authPath}${url.search}`, authServerUrl);
 
 	const headers = new Headers();
 	// Forward crucial headers

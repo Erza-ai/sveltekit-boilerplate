@@ -3,6 +3,11 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { authClient } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { env } from '$env/dynamic/public';
+
+	const authServerUrl = env.PUBLIC_AUTH_SERVER_URL ?? 'https://auth.dev.erza.ai';
+	const authServerLabel = authServerUrl.replace(/^https?:\/\//, '');
 
 	const session = authClient.useSession();
 
@@ -12,7 +17,7 @@
 		try {
 			isSigningOut = true;
 			await authClient.signOut();
-			goto('/login');
+			goto(resolve('/login'));
 		} catch (error) {
 			console.error('Sign out failed', error);
 		} finally {
@@ -81,7 +86,7 @@
 
 				<Card.Content class="flex justify-center px-8 pb-10">
 					<Button
-						onclick={() => goto('/login')}
+						onclick={() => goto(resolve('/login'))}
 						class="px-8 h-11 bg-primary text-primary-foreground font-medium rounded-xl hover:opacity-90 transition-opacity cursor-pointer shadow-md shadow-primary/10"
 					>
 						Go to Login Page
@@ -178,10 +183,10 @@
 								Boilerplate Authenticated Successfully
 							</h4>
 							<p class="text-xs text-muted-foreground mt-1 leading-relaxed">
-								Your client application is communicating correctly with the Better Auth server at <a
-									href="https://auth.dev.erza.ai"
-									class="text-primary hover:underline">auth.dev.erza.ai</a
-								>. The session variables above are reactive and will keep your state synced across
+								Your client application is communicating correctly with the Better Auth server at
+								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external URL, not an app route -->
+								<a href={authServerUrl} class="text-primary hover:underline">{authServerLabel}</a>.
+								The session variables above are reactive and will keep your state synced across
 								components.
 							</p>
 						</div>

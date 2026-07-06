@@ -1,0 +1,67 @@
+name: CI Verify
+description: Detect frontend changes, then install, type-check, lint and build. Assumes the repo is already checked out.
+
+outputs:
+  passed:
+    description: 'true when verification completed (either it ran and succeeded, or there were no relevant changes).'
+    value: ${{ steps.result.outputs.passed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect source changes
+      id: changes
+      uses: tj-actions/changed-files@v47
+      with:
+        files: |
+          **/*.ts
+          **/*.js
+          **/*.svelte
+          **/*.css
+          package.json
+          bun.lock
+          vite.config.ts
+          svelte.config.js
+          tsconfig.json
+          Dockerfile
+          .github/workflows/ci.yaml
+          .github/workflows/cd-dev.yaml
+          .github/workflows/cd-staging.yaml
+
+    - name: Setup Bun
+      if: steps.changes.outputs.any_changed == 'true'
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      if: steps.changes.outputs.any_changed == 'true'
+      shell: bash
+      run: bun install --frozen-lockfile
+
+    - name: Sync SvelteKit
+      if: steps.changes.outputs.any_changed == 'true'
+      shell: bash
+      run: bun run prepare
+
+    - name: Type check
+      if: steps.changes.outputs.any_changed == 'true'
+      shell: bash
+      run: bun run check
+
+    - name: Lint
+      if: steps.changes.outputs.any_changed == 'true'
+      shell: bash
+      run: bun run lint
+
+    - name: Build
+      if: steps.changes.outputs.any_changed == 'true'
+      shell: bash
+      run: bun run build
+
+    # Reached only when every prior step succeeded (or was skipped). The caller reads this
+    # output so a green primary run skips the self-hosted fallback.
+    - name: Mark verification passed
+      id: result
+      shell: bash
+      run: echo "passed=true" >> "$GITHUB_OUTPUT"
